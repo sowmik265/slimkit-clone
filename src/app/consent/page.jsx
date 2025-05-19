@@ -29,9 +29,7 @@ export default function ConsentPage() {
       <p className="text-xs text-gray-600 max-w-md mb-6">
         By pressing Continue I hereby agree to processing of my personal data.
         Nothing is shared without my permission.{" "}
-        <span className=" underline hover:cursor-pointer">
-          Privacy Policy
-        </span>{" "}
+        <span className=" underline hover:cursor-pointer">Privacy Policy</span>{" "}
         and{" "}
         <span className=" underline hover:cursor-pointer">
           Terms and Conditions
