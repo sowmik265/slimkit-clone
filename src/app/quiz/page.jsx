@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 import clsx from "clsx";
 import surveyScreens from "/data/survey";
+import ResultsPage from "../results/page"; // Adjust path if needed
 
 const quizFlow = surveyScreens;
 const questionSteps = quizFlow.filter((step) => step.type !== "static");
@@ -21,9 +22,14 @@ export default function QuizPage() {
 
   const [selectedDate, setSelectedDate] = useState("");
 
+  // If all questions answered, show results page
+  if (currentIndex >= quizFlow.length) {
+    return <ResultsPage answers={answers} />;
+  }
+
   const handleAnswer = (answer) => {
     setAnswers((prev) => ({ ...prev, [currentStep.id]: answer }));
-    if (currentIndex < quizFlow.length - 1) {
+    if (currentIndex < quizFlow.length) {
       setCurrentIndex((prev) => prev + 1);
     }
   };
@@ -37,7 +43,6 @@ export default function QuizPage() {
   const handleContinue = (skipped = false) => {
     const answer = skipped ? "skipped" : selectedDate;
 
-    // You can optionally show an alert if Done is clicked without picking a date
     if (!skipped && !selectedDate) {
       alert("Please select a date or skip the question.");
       return;
@@ -45,14 +50,12 @@ export default function QuizPage() {
 
     setAnswers((prev) => ({ ...prev, [currentStep.id]: answer }));
 
-    if (currentIndex < quizFlow.length - 1) {
+    if (currentIndex < quizFlow.length) {
       setCurrentIndex((prev) => prev + 1);
     }
   };
 
   const handleNextStep = () => {
-    // Validation
-    let valid = true;
     let answerValue = "";
 
     if (selectedUnit === "FT") {
@@ -69,27 +72,26 @@ export default function QuizPage() {
       answerValue = `${cm}cm`;
     }
 
-    // Save answer and go to next step
     setAnswers((prev) => ({ ...prev, [currentStep.id]: answerValue }));
 
-    if (currentIndex < quizFlow.length - 1) {
+    if (currentIndex < quizFlow.length) {
       setCurrentIndex((prev) => prev + 1);
     }
   };
 
-  // Function to check if module is completed (all questions answered)
   const isModuleCompleted = (moduleNumber) => {
     const moduleSteps = questionSteps.filter((q) => q.module === moduleNumber);
     const answeredSteps = moduleSteps.filter((q) => answers[q.id]);
     return answeredSteps.length === moduleSteps.length;
   };
 
-  // Calculate progress fill % for the line between two circles based on current module
-  const getLineFillPercent = (moduleNumber) => {
-    const moduleSteps = questionSteps.filter((q) => q.module === moduleNumber);
-    if (moduleSteps.length === 0) return 0;
-    const answeredSteps = moduleSteps.filter((q) => answers[q.id]).length;
-    return (answeredSteps / moduleSteps.length) * 100;
+  const getLineFillPercent = (moduleIndex) => {
+    const moduleQuestions = questionSteps.filter(
+      (q) => q.module === moduleIndex
+    );
+    const answeredCount = moduleQuestions.filter((q) => answers[q.id]).length;
+
+    return (answeredCount / moduleQuestions.length) * 100;
   };
 
   return (
@@ -105,12 +107,9 @@ export default function QuizPage() {
 
         <div className="flex items-center flex-1">
           {[1, 2, 3, 4, 5].map((circleIndex, idx) => {
-            // First circle always filled
             const isFilled =
               circleIndex === 1 ||
               (circleIndex > 1 && isModuleCompleted(circleIndex - 1));
-
-            // Line fill for the line after current circle (except for last circle)
             const lineFill = idx < 4 ? getLineFillPercent(idx + 1) : 0;
 
             return (
@@ -120,7 +119,6 @@ export default function QuizPage() {
                   idx < 4 ? "flex-1" : "flex-none"
                 }`}
               >
-                {/* Circle */}
                 <div
                   className={clsx(
                     "w-6 h-6 rounded-full flex items-center justify-center z-10 transition-colors duration-300",
@@ -132,14 +130,11 @@ export default function QuizPage() {
                   {isFilled ? <Check color="#EFBF04" size={16} /> : ""}
                 </div>
 
-                {/* Line after circle (except last) */}
                 {idx < 4 && (
                   <div className="flex-1 h-1 bg-gray-200 relative rounded-full overflow-hidden -ml-1 -mr-1">
                     <div
                       className="h-full bg-blue-500 transition-all duration-500"
-                      style={{
-                        width: isModuleCompleted(idx) ? `${lineFill}%` : "0%",
-                      }}
+                      style={{ width: `${lineFill}%` }}
                     />
                   </div>
                 )}
@@ -240,10 +235,7 @@ export default function QuizPage() {
                           : "bg-gray-50 text-black hover:border-blue-500"
                       )}
                     >
-                      {/* Left Side: Label */}
                       <span className="text-lg font-bold">{opt.label}</span>
-
-                      {/* Right Side: Image with fixed height */}
                       <div className="h-24 w-auto">
                         <img
                           src={opt.image}
@@ -257,18 +249,15 @@ export default function QuizPage() {
               );
 
             case "scale":
-              // Extract bolded phrase from speech (inside quotes)
               const match = currentStep.speech.match(/“(.+?)”/);
               const speechMain = match ? match[1] : currentStep.speech;
               const [highlight, ...rest] = speechMain.split(",");
 
               return (
                 <div className="w-full max-w-xl mx-auto text-center space-y-8">
-                  {/* Speech Bubble */}
                   <div className="relative inline-block max-w-full text-left">
                     <div className="bg-gradient-to-b from-white to-blue-100 text-lg leading-relaxed text-black p-6 rounded-3xl shadow-md">
                       <p>
-                        {" "}
                         <span className="text-blue-600 font-bold">
                           {highlight}
                         </span>
@@ -277,12 +266,8 @@ export default function QuizPage() {
                         {rest.join(",").trim()}
                       </p>
                     </div>
-
-                    {/* Tail */}
                     <div className="absolute bottom-0 right-6 translate-y-full w-0 h-0 border-t-[20px] border-t-blue-50 border-l-[20px] border-l-transparent"></div>
                   </div>
-
-                  {/* Scale Buttons */}
                   <div className="flex justify-center gap-4 pt-4">
                     {currentStep.scale.map((value) => (
                       <button
@@ -302,7 +287,6 @@ export default function QuizPage() {
                 </div>
               );
 
-            // case "unit-input":
             case "unit-input":
               const isHeight = currentStep.question
                 .toLowerCase()
@@ -310,7 +294,6 @@ export default function QuizPage() {
 
               return (
                 <div className="space-y-6 w-full max-w-md mx-auto text-center">
-                  {/* Unit Switcher */}
                   <div className="flex justify-center gap-2 bg-gray-100 p-1 rounded-full w-full max-w-xs mx-auto">
                     {currentStep.units.map((unit) => (
                       <button
@@ -327,7 +310,6 @@ export default function QuizPage() {
                     ))}
                   </div>
 
-                  {/* Input Fields */}
                   {isHeight && selectedUnit === "FT" ? (
                     <div className="flex justify-center items-end gap-4 text-2xl font-bold">
                       <input
@@ -360,7 +342,6 @@ export default function QuizPage() {
                     </div>
                   )}
 
-                  {/* Info Box */}
                   <div className="bg-gray-100 p-4 rounded-2xl flex gap-2 items-start">
                     <span className="text-blue-600 text-xl">🧮</span>
                     <div className="text-left">
@@ -373,7 +354,6 @@ export default function QuizPage() {
                     </div>
                   </div>
 
-                  {/* Done Button (moved below info) */}
                   <button
                     onClick={handleNextStep}
                     className="bg-gradient-to-r from-blue-800 to-blue-500 text-yellow-300 font-semibold py-2 px-6 rounded-full shadow-md hover:scale-105 transition w-full max-w-xs text-2xl"
@@ -386,7 +366,6 @@ export default function QuizPage() {
             case "date":
               return (
                 <div className="w-full max-w-md mx-auto text-center px-4 space-y-10">
-                  {/* Date Input styled with underline */}
                   <div className="border-b-2 border-gray-300">
                     <input
                       type="date"
@@ -401,7 +380,6 @@ export default function QuizPage() {
                     />
                   </div>
 
-                  {/* Skip link + Done button in column */}
                   <div className="flex flex-col items-center space-y-4">
                     {currentStep.optional && (
                       <button
